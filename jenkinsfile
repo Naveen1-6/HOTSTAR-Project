@@ -1,20 +1,14 @@
 pipeline {
     agent any
-
-    environment {
+ environment {
         DOCKER_IMAGE = "your-dockerhub-username/java-project-maven-new"
         DOCKER_TAG = "latest"
         CONTAINER_NAME = "HOTSTAR-CONTAINER"
+
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/Naveen1-6/HOTSTAR-Project.git'
-            }
-        }
-
-        stage('Build with Maven') {
+        stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
@@ -22,34 +16,56 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh """
-                    docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
-                    """
+                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',  // 🔹 Jenkins credential ID
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo "⚡ Logging into DockerHub..."
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                    echo "⚡ Tagging image..."
+                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+
+                    echo "⚡ Pushing image..."
+                    docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                    '''
                 }
             }
         }
 
-        stage('Deploy Container') {
+        stage('Run Container (Local Test)') {
             steps {
                 script {
-                    sh """
-                    # Remove old container if it exists
-                    docker rm -f ${CONTAINER_NAME} || true
+                    sh 'docker rm -f myapp-cont || true'
+                    sh 'docker run -d --name myapp-cont -p 8085:8080 ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}'
 
-                    # Run new container
-                    docker run -d --name ${CONTAINER_NAME} -p 8085:8080 ${DOCKER_IMAGE}:${DOCKER_TAG}
-                    """
+                    // ✅ Show container logs in Jenkins console
+                    sh 'sleep 5 && docker logs myapp-cont'
                 }
             }
         }
-     stage('Docker Swarm Deploy') {
+
+        stage('Deploy to Docker Swarm') {
             steps {
-                sh '''
-                    docker service update --your-dockerhub-username/java-project-maven-new || \
-                    docker service create --name hotstar -p 8009:8080 --replicas=10 hotstar:v1
-                '''
-     
-      
+                script {
+                    sh '''
+                    docker service rm myapp-service || true
+                    docker service create \
+                        --name myapp-service \
+                        --publish 8085:8080 \
+                        --replicas 5 \
+                        ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                    '''
+                }
+            }
+        }
     }
 }
