@@ -1,7 +1,7 @@
 pipeline {
     agent any
  environment {
-        DOCKER_IMAGE = "your-dockerhub-username/java-project-maven-new"
+        DOCKER_IMAGE = "your-dockerhub-username/java-project-maven-ne"
         DOCKER_TAG = "latest"
         CONTAINER_NAME = "HOTSTAR-CONTAINER"
 
@@ -17,27 +17,6 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
-            }
-        }
-
-        stage('Push to DockerHub') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',  // 🔹 Jenkins credential ID
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                    echo "⚡ Logging into DockerHub..."
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-
-                    echo "⚡ Tagging image..."
-                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-
-                    echo "⚡ Pushing image..."
-                    docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                    '''
-                }
             }
         }
 
