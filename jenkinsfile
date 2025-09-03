@@ -1,14 +1,21 @@
 pipeline {
     agent any
- environment {
-        DOCKER_IMAGE = "your-dockerhub-username/java-project-maven-ne"
-        DOCKER_TAG = "latest"
-        CONTAINER_NAME = "HOTSTAR-CONTAINER"
 
+    environment {
+        DOCKER_USER     = "kranthi6166"            // ✅ your DockerHub username
+        IMAGE_NAME      = "java-project-maven-new" // ✅ project image name
+        IMAGE_TAG       = "latest"
+        CONTAINER_NAME  = "HOTSTAR-CONTAINER"
     }
 
     stages {
-        stage('Build') {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Naveen1-6/HOTSTAR-Project.git'
+            }
+        }
+
+        stage('Build App') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
@@ -16,35 +23,37 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
+                sh '''
+                    echo "Building Docker image..."
+                    docker build -t ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG} .
+                '''
             }
         }
 
         stage('Run Container (Local Test)') {
             steps {
-                script {
-                    sh 'docker rm -f myapp-cont || true'
-                    sh 'docker run -d --name myapp-cont -p 8085:8080 ${DOCKER_HUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}'
-
-                    // ✅ Show container logs in Jenkins console
-                    sh 'sleep 5 && docker logs myapp-cont'
-                }
+                sh '''
+                    echo "Running container locally..."
+                    docker rm -f ${CONTAINER_NAME} || true
+                    docker run -d --name ${CONTAINER_NAME} -p 8085:8080 ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                    sleep 5
+                    docker logs ${CONTAINER_NAME}
+                '''
             }
         }
 
         stage('Deploy to Docker Swarm') {
             steps {
-                script {
-                    sh '''
-                    docker service rm myapp-service || true
+                sh '''
+                    echo "Deploying to Docker Swarm..."
+                    docker service rm hotstar-service || true
                     docker service create \
-                        --name myapp-service \
+                        --name hotstar-service \
                         --publish 8085:8080 \
-                        --replicas 5 \
+                        --replicas 3 \
                         ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                    '''
-                }
+                '''
             }
         }
     }
-}
+
