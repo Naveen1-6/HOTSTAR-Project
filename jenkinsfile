@@ -43,5 +43,13 @@ pipeline {
                 }
             }
         }
+     stage('Docker Swarm Deploy') {
+            steps {
+                sh '''
+                    docker service update --your-dockerhub-username/java-project-maven-new || \
+                    docker service create --name hotstar -p 8009:8080 --replicas=10 hotstar:v1
+                '''
+     
+      
     }
 }
