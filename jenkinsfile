@@ -44,14 +44,12 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'kranthi6166', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-                    sh '''
-                        echo "Logging in to DockerHub..."
-                        echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-                        echo "Pushing image to DockerHub..."
-                        docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                        docker logout
-                    '''
+             withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+    sh """
+      echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+      docker build -t $DOCKERHUB_USER/myimage:latest .
+      docker push $DOCKERHUB_USER/myimage:latest
+    """
                 }
             }
         }
