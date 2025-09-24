@@ -4,7 +4,7 @@
     <groupId>in.reyaz</groupId>
     <artifactId>myapp</artifactId>
     <packaging>war</packaging>
-    <version>8.3.3-SNAPSHOT</version>
+    <version>8.3.3</version>
     <name>myapp</name>
     <url>http://maven.apache.org</url>
 
@@ -60,4 +60,14 @@
             <url>https://repo1.maven.org/maven2</url>
         </pluginRepository>
     </pluginRepositories>
+    <distributionManagement>
+        <repository>
+            <id>maven-releases</id>
+            <url>http://13.203.104.152:8081/repository/maven-releases/</url>    
+        </repository>
+        <snapshotRepository>
+            <id>maven-snapshots</id>
+            <url>http://13.203.104.152:8081/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>
